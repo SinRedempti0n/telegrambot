@@ -41,17 +41,51 @@ def UserCheck(message):
     DataBase.commit()   # Сохранение изменений
     DataBase.close()    # Закрытие таблицы
 
+def CRMLoginChecker(message):
+    login = message.text.upper().split(' ')
+    DataBase = sqlite3.connect("Users.db")  # Подключение БД
+    cursor = DataBase.cursor()  # Создание указателя
+    cursor.execute('SELECT CRMLogin, UserID, Username FROM SAP WHERE CRMLogin ="' + str(login[0]) + '"') # Поиск по ID если ли запись в таблице
+    data = cursor.fetchall()    # Выгрузка найденных данных в список
+    if not data: # Если данные пусты
+        bot.send_message(message.chat.id, 'К сожалению сотрудник {crm} не найден'.format(crm = login[0]))
+    else: 
+        try:
+            if(not data[0][2]):
+                print(data[0][2])
+                bot.send_message(data[0][1], "Вас попросили выйти из карточки. Спасибо.")
+            else:
+                bot.send_message(data[0][1], "@{username}, вас попросили выйти из карточки. Спасибо.".format(username = data[0][2]))
+            bot.send_message(message.chat.id, "Сообщение специалисту отправлено.")
+        except:
+            bot.send_message(message.chat.id, "Упс, что-то пошло не так обратитесь к супервайзеру.")
 
-
+def CRMLoginRegister(message):
+    login = message.text.upper().split(' ')
+    DataBase = sqlite3.connect("Users.db")  # Подключение БД
+    cursor = DataBase.cursor()  # Создание указателя
+    cursor.execute('SELECT CRMLogin, UserID FROM SAP WHERE UserID = ' + str(message.chat.id) ) # Поиск по ID если ли запись в таблице
+    data = cursor.fetchall()    # Выгрузка найденных данных в список
+    if not data: # Если данные пусты
+        bot.send_message(message.chat.id, 'Вы зарегистрированны как {crm}'.format( username = message.chat.username, crm = login[0]))
+        tmp = (login[0], message.chat.id, message.chat.username) # Создать список (CRM, Chat ID)
+        query = "INSERT INTO SAP VALUES (?, ?, ?)"    # Строковый запрос
+        cursor.execute(query, tmp)  # Создание записи в таблице с указанием написавшего и временем написания
+    else:    # Если данные не пусты, сверить прошедшее время с временем из конфига
+        bot.send_message(message.chat.id, 'Вы обновлёны как {crm}'.format( username = message.chat.username, crm = params[1]))
+        cursor.execute('UPDATE SAP SET CRMLogin = "' + str(params[1]) + '" WHERE UserID = '+ str(message.chat.id))   # Обновить время
+    DataBase.commit()   # Сохранение изменений
+    DataBase.close()    # Закрытие таблицы    
 @bot.message_handler(commands=['start', 'help'])    # Обработка команд /help и /start
 def send_welcome(message):
     try:
         helpInline = types.ForceReply(selective=False) # Обязательный reply
-        helpInline = types.ReplyKeyboardRemove(selective=True)
+        helpInline = types.ReplyKeyboardMarkup(resize_keyboard=Trueg)
         itembtn1 = types.KeyboardButton('/link')    # Элементы
         itembtn2 = types.KeyboardButton('/news')
         itembtn3 = types.KeyboardButton('/boss')
-        helpInline.row(itembtn1, itembtn2, itembtn3)
+        itembtn4 = types.KeyboardButton('/unlock')
+        helpInline.row(itembtn1, itembtn2, itembtn3, itembtn4)
         cid = message.chat.id
         bot.delete_message(message.chat.id, message.message_id) # Удаление сообщения с командой
         helpFile = open('Forms\\Help.txt', 'r') # Открытие файла
@@ -104,43 +138,13 @@ def send_message_id(message):
 
 @bot.message_handler(commands=['register']) # Обработка команды /register
 def login_reg(message):
-    params = message.text.upper().split(' ')
-    if(len(params) == 2):
-        DataBase = sqlite3.connect("Users.db")  # Подключение БД
-        cursor = DataBase.cursor()  # Создание указателя
-        cursor.execute('SELECT CRMLogin, UserID FROM SAP WHERE UserID = ' + str(message.chat.id) ) # Поиск по ID если ли запись в таблице
-        data = cursor.fetchall()    # Выгрузка найденных данных в список
-        if not data: # Если данные пусты
-            bot.send_message(message.chat.id, '{username}, зарегистрирован как {crm}'.format( username = message.chat.username, crm = params[1]))
-            tmp = (params[1], message.chat.id, message.chat.username) # Создать список (CRM, Chat ID)
-            query = "INSERT INTO SAP VALUES (?, ?, ?)"    # Строковый запрос
-            cursor.execute(query, tmp)  # Создание записи в таблице с указанием написавшего и временем написания
-        elif time.time() - data[0][1] > config.answer_delay:    # Если данные не пусты, сверить прошедшее время с временем из конфига
-            bot.send_message(message.chat.id, '{username}, обновлён как {crm}'.format( username = message.chat.username, crm = params[1]))
-            cursor.execute('UPDATE SAP SET CRMLogin = "' + str(params[1]) + '" WHERE UserID = '+ str(message.chat.id))   # Обновить время
-        DataBase.commit()   # Сохранение изменений
-        DataBase.close()    # Закрытие таблицы
-    else:
-        bot.send_message(message.chat.id, 'Неверное количество параметров')
+    msg = bot.reply_to(message, "Введите ваш логин SAP CRM")
+    bot.register_next_step_handler(msg, CRMLoginRegister)
 
 @bot.message_handler(commands=['unlock']) # Обработка команды /register
 def send_unlock(message):
-    params = message.text.upper().split(' ')
-    if(len(params) == 2):
-        DataBase = sqlite3.connect("Users.db")  # Подключение БД
-        cursor = DataBase.cursor()  # Создание указателя
-        cursor.execute('SELECT CRMLogin, UserID, Username FROM SAP WHERE CRMLogin ="' + str(params[1]) + '"') # Поиск по ID если ли запись в таблице
-        data = cursor.fetchall()    # Выгрузка найденных данных в список
-        if not data: # Если данные пусты
-            bot.send_message(message.chat.id, 'К сожалению сотрудник {crm} не найден'.format(crm = params[1]))
-        else:    # Если данные не пусты, сверить прошедшее время с временем из конфига
-            try:
-                bot.send_message(data[0][1], "@{username}, вас попросили выйти из карточки. Спасибо.".format(username = data[0][2]))
-                bot.send_message(message.chat.id, "Сообщение специалисту отправлено.")
-            except:
-                bot.send_message(message.chat.id, "Упс, что-то пошло не так обратитесь к супервайзеру.")
-    else:
-        bot.send_message(message.chat.id, 'Неверное количество параметров')
+    msg = bot.reply_to(message, "Введите логин специалиста")
+    bot.register_next_step_handler(msg, CRMLoginChecker)
 
 @bot.message_handler(content_type=['new_chat_members']) # Обработка нового участника
 def handle_new_chat_members(message):
