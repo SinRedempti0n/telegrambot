@@ -1,0 +1,5 @@
+config.py
+Users.db
+Forms/*
+0release/*
+__pycache__/*
