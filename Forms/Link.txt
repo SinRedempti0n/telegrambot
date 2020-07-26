@@ -1,0 +1,9 @@
+<b>Вот ссылки, на самые необходимые ИС:</b>
+
+1. <a href="http://db.spb.corpd.ru/">База знаний</a>
+2. <a href="http://crm-webdisp.ncnet.ru:8068">SAP CRM</a>
+3. <a href="http://e.asrz.mt.rt.ru/">Е-Сервер</a>
+4. <a href="http://scelp000ap210.ce.rt.ru/desktop/container/?locale=ru_RU">Cisco Finesse</a>
+5. <a href="http://scelp000ap224.ce.rt.ru/TeleoptiWFM/Web/MyTime#ScheduleTab">Teleopti</a>
+
+<i>Если остались вопросы, то поищите помощи в чате.</i>
